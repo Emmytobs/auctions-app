@@ -1,0 +1,27 @@
+AuctionsTable:
+  Type: AWS::DynamoDB::Table
+  Properties:
+    TableName: AuctionsTable-${self:provider.stage}
+    BillingMode: PAY_PER_REQUEST
+    AttributeDefinitions:
+      - AttributeName: id # "id" field on AuctionsTable. Similar to column name in a SQL DB
+        AttributeType: S # Specifies the data type of the field as a string
+      - AttributeName: status
+        AttributeType: S
+      - AttributeName: endingAt
+        AttributeType: S
+    KeySchema:
+      - AttributeName: id
+        KeyType: HASH
+    GlobalSecondaryIndexes:
+      - IndexName: statusAndEndDate # This combines two attributes (status and endingAt) under a single GSI
+        KeySchema:
+          - AttributeName: status
+            KeyType: HASH # will make status a partition key. See more: https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-dynamodb-table-keyschema.html
+          - AttributeName: endingAt
+            KeyType: RANGE # will make endingAt a sort key. Sort keys are usually used for attributes that store datetime values
+        Projection:
+          ProjectionType: ALL # Tells Dynamodb to copy all table attributes into the GSI
+
+# Resources
+# Read this SO post about partition and sort keys: https://stackoverflow.com/questions/56166332/what-is-the-difference-between-partition-key-and-sort-key-in-amazon-dynamodb

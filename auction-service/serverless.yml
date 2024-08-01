@@ -1,0 +1,89 @@
+# "org" ensures this Service is used with the correct Serverless Framework Access Key.
+org: emmytobs
+# "app" enables Serverless Framework Dashboard features and sharing them with other Services.
+app: auction
+# "service" is the name of this project. This will also be added to your AWS resource names.
+service: auction-service
+
+provider:
+  name: aws
+  runtime: nodejs20.x 
+  memorySize: 256
+  stage: ${opt:stage, "dev"}
+  region: us-east-1
+  httpApi:
+    cors: true
+    authorizers:
+      auth:
+        type: request
+        functionArn: ${self:custom.authServiceArn}
+  # Here, the env variables would be accessible within the Node.js runtime when deployed on AWS Lambda
+  environment:
+    AUCTIONS_TABLE_NAME: ${self:custom.AuctionsTable.name} 
+  iam:
+    role:
+      statements:
+        - ${file(resources/iam/AuctionsTableIAMRole.yml):AuctionsTableIAMRole}
+
+resources:
+  Resources:
+  # The key here represents the logical name of the resource, while the value is the file path to the resource definition.
+    AuctionsTable: ${file(resources/dynamodb/AuctionsTable.yml):AuctionsTable}
+ 
+plugins:
+  - serverless-esbuild # Enables TypeScript and ES6 features, which are all transpiled in the build process before uploading the function code to AWS Lambda.
+
+functions:
+  createAuction:
+    handler: src/handlers/createAuction.handler # The ".handler" represents the named export from the createAuction file
+    url: true
+    events:
+      - httpApi:
+          path: /auction
+          method: post
+          authorizer:
+            name: auth
+  getAuctions:
+    handler: src/handlers/getAuctions.handler
+    url: true
+    events:
+      - httpApi:
+          path: /auctions
+          method: get
+  getAuction:
+    handler: src/handlers/getAuction.handler
+    url: true
+    events:
+      - httpApi:
+          path: /auction/{id}
+          method: get
+  placeBid:
+    handler: src/handlers/placeBid.handler
+    url: true
+    events:
+      - httpApi:
+          path: /auction/{id}/bid
+          method: patch
+          authorizer:
+            name: auth
+  processAuctions:
+    handler: src/handlers/processAuctions.handler
+    # events:
+    #   - schedule:
+    #       rate: rate(1 minute)
+
+# Tells Serverless to disable the out-of-the-box esbuild and use the serverless-esbuild plugin for bundling, ES6 support and TypeScript transpiling.
+build:
+  esbuild: false
+
+package:
+  patterns:
+    - 'node_modules/**'
+
+custom:
+  authServiceArn: arn:aws:lambda:${aws:region}:${aws:accountId}:function:auth-service-${self:provider.stage}-auth
+  # Visit to learn more about the config below: https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html#aws-resource-dynamodb-table-return-values
+  # Also, watch the portion of the Udemy course for more explanation: https://www.udemy.com/course/serverless-framework/learn/lecture/19170922#overview
+  AuctionsTable:
+    name: !Ref AuctionsTable # AuctionsTable here represents the logical name of the resource.
+    arn: !GetAtt AuctionsTable.Arn

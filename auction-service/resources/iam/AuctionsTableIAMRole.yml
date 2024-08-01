@@ -1,0 +1,14 @@
+AuctionsTableIAMRole:
+  Effect: Allow
+  Action:
+    - dynamodb:PutItem
+    - dynamodb:Scan
+    - dynamodb:GetItem
+    - dynamodb:UpdateItem
+    - dynamodb:Query
+  Resource:
+    - ${self:custom.AuctionsTable.arn}
+    - !Join [ '/', [ '${self:custom.AuctionsTable.arn}', 'index', 'statusAndEndDate' ] ] # ARN for the GSI of the dynamodb table. ARNs for GSIs follow this pattern: "<DynamoDB table arc>/index/<GSI name>". 
+    # Read more about GSI ARNs here: https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/iam-policy-specific-table-indexes.html
+    # Read more about the !Join CLF function: https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/intrinsic-function-reference-join.html
+    
