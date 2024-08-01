@@ -1,0 +1,68 @@
+org: emmytobs
+app: auth
+service: auth-service
+
+plugins:
+  - serverless-esbuild
+
+provider:
+  name: aws
+  runtime: nodejs20.x
+  memorySize: 128
+  stage: ${opt:stage, "dev"}
+  region: us-east-1
+  # environment:
+  #   AUTH0_PUBLIC_KEY: ${file(secret.pem)}
+  httpApi:
+    cors: true
+    authorizers:
+      auth:
+        type: request
+        functionName: auth # references functions.auth
+
+functions:
+  auth:
+    handler: src/handlers/auth.handler
+    url: true
+  publicEndpoint:
+    handler: src/handlers/public.handler
+    url: true
+    events:
+      - httpApi:
+          path: /public
+          method: POST
+  privateEndpoint:
+    handler: src/handlers/private.handler
+    url: true
+    events:
+      - httpApi:
+          path: /private
+          method: POST
+          authorizer:
+            name: auth # references provider.httpApi.authorizers.auth
+
+# resources:
+  # Resources:
+  #   # This response is needed for custom authorizer failures cors support ¯\_(ツ)_/¯
+  #   GatewayResponse:
+  #     Type: 'AWS::ApiGateway::GatewayResponse'
+  #     Properties:
+  #       ResponseParameters:
+  #         gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
+  #         gatewayresponse.header.Access-Control-Allow-Headers: "'*'"
+  #       ResponseType: EXPIRED_TOKEN
+  #       RestApiId:
+  #         Ref: 'ApiGatewayRestApi'
+  #       StatusCode: '401'
+  #   AuthFailureGatewayResponse:
+  #     Type: 'AWS::ApiGateway::GatewayResponse'
+  #     Properties:
+  #       ResponseParameters:
+  #         gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
+  #         gatewayresponse.header.Access-Control-Allow-Headers: "'*'"
+  #       ResponseType: UNAUTHORIZED
+  #       RestApiId:
+  #         Ref: 'ApiGatewayRestApi'
+  #       StatusCode: '401'
+build:
+  esbuild: false
