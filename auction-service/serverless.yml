@@ -13,6 +13,7 @@ provider:
   region: us-east-1
   httpApi:
     cors: true
+    # Configures a Lambda authorizer for API Gateway to authenticate requests
     authorizers:
       auth:
         type: request
@@ -20,10 +21,12 @@ provider:
   # Here, the env variables would be accessible within the Node.js runtime when deployed on AWS Lambda
   environment:
     AUCTIONS_TABLE_NAME: ${self:custom.AuctionsTable.name} 
+    MAIL_QUEUE_URL: ${self:custom.MailQueue.url}
   iam:
     role:
       statements:
         - ${file(resources/iam/AuctionsTableIAMRole.yml):AuctionsTableIAMRole}
+        - ${file(resources/iam/MailQueueIAMRole.yml):MailQueueIAMRole}
 
 resources:
   Resources:
@@ -87,3 +90,8 @@ custom:
   AuctionsTable:
     name: !Ref AuctionsTable # AuctionsTable here represents the logical name of the resource.
     arn: !GetAtt AuctionsTable.Arn
+  MailQueue:
+  # Imported from the notification-service cloud formation stack
+  # Read more: https://www.serverless.com/framework/docs/guides/variables/cf-stack
+    arn: ${cf:notification-service-${self:provider.stage}.MailQueueArn}
+    url: ${cf:notification-service-${self:provider.stage}.MailQueueUrl}

@@ -8,8 +8,26 @@ import { getAuctionById } from "../lib/getAuctionById"
 import placeBidSchema from "../lib/schemas/placeBidSchema"
 import validator from "@middy/validator"
 import { transpileSchema } from "@middy/validator/transpile"
+import { sendMessage } from "../lib/sendMessage"
 
 const dynamodb = DynamoDBDocument.from(new DynamoDB())
+
+const notifyBidder = async (bidAmount: string, bidderEmail: string, auctionTitle: string) => {
+  await sendMessage({
+    subject: "Bid placed successfully",
+    body: `Hi there,
+    Your bid of $${bidAmount} for ${auctionTitle} was placed successfully.`,
+    recipientEmail: bidderEmail
+  })
+}
+const notifySeller = async (bidAmount: string, sellerEmail: string, auctionTitle: string) => {
+  await sendMessage({
+    subject: "You have a new bid on your auction",
+    body: `Hi there,
+    Your auction ${auctionTitle} has a new bid of $${bidAmount}.`,
+    recipientEmail: sellerEmail
+  })
+}
 
 const placeBid: Handler = async (event, context) => {
   let updatedAuction;
@@ -43,6 +61,11 @@ const placeBid: Handler = async (event, context) => {
       ReturnValues: "ALL_NEW"
     })
     updatedAuction = result.Attributes
+
+    await Promise.all([
+      notifyBidder(amount, email, auction.title),
+      notifySeller(amount, auction.sellerEmail, auction.title)
+    ]);
   } catch (error) {
     console.error(error);
     throw new createError.InternalServerError(error);

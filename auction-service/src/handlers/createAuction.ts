@@ -1,5 +1,5 @@
 import { Handler } from "aws-lambda"
-import { DynamoDB, PutItemInput } from "@aws-sdk/client-dynamodb"
+import { DynamoDB } from "@aws-sdk/client-dynamodb"
 import { DynamoDBDocument } from "@aws-sdk/lib-dynamodb"
 import { v4 as uuid } from "uuid"
 
@@ -9,6 +9,7 @@ import createAuctionSchema from "../lib/schemas/createAuctionSchema"
 import { Auction } from "../types"
 import validator from "@middy/validator"
 import { transpileSchema } from "@middy/validator/transpile"
+import { sendMessage } from "../lib/sendMessage"
 
 /*
   DynamoDBDocument returns a dynamodb client that handles marshalling and unmarshalling automatically.
@@ -42,6 +43,16 @@ const createAuction: Handler = async (event, context) => {
       TableName: process.env.AUCTIONS_TABLE_NAME,
       Item: auction
     })
+
+    await sendMessage(
+      {
+        subject: "Auction created successfully!",
+        body: `Hi there,
+        Your auction ${auction.title} is now live. Watch out for bidding updates`,
+        recipientEmail: email
+      }
+    )
+
     return {
       statusCode: 201,
       body: JSON.stringify(auction),
