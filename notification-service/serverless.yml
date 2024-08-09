@@ -1,0 +1,45 @@
+org: emmytobs
+app: notification
+service: notification-service
+
+plugins:
+  - serverless-esbuild
+
+provider:
+  name: aws
+  runtime: nodejs20.x
+  memorySize: 128
+  stage: ${opt:stage, "dev"}
+  region: us-east-1
+  environment:
+    REGION: ${self:provider.region}
+  iam:
+    role:
+      statements:
+        - ${file(src/resources/ses/IAM.yml):SESIAMRole}
+
+resources:
+  Resources:
+    MailQueue: ${file(src/resources/sqs/MailQueue.yml):MailQueue}
+  Outputs:
+    # Exports the arn and url of MailQueue so it's accessible in other CloudFormation stacks within the same region
+    MailQueueArn: ${file(src/resources/sqs/MailQueue.yml):Outputs.MailQueueArn}
+    MailQueueUrl: ${file(src/resources/sqs/MailQueue.yml):Outputs.MailQueueUrl}
+
+functions:
+  sendMail:
+    handler: src/handlers/sendMail.handler
+    url: true
+    events:
+      - sqs: 
+          arn: ${self:custom.MailQueue.arn}
+          batchSize: 1
+
+build:
+  esbuild: false
+
+custom:
+  MailQueue: 
+    name: MailQueue-${self:provider.stage}
+    arn: !GetAtt MailQueue.Arn
+    url: !GetAtt MailQueue.QueueUrl

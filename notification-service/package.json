@@ -1,0 +1,20 @@
+{
+  "name": "notification-service",
+  "version": "1.0.0",
+  "description": "Notification microservice for Auction app",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.142",
+    "@types/node": "^22.1.0",
+    "esbuild": "^0.20.2",
+    "serverless-esbuild": "^1.52.1"
+  },
+  "dependencies": {
+    "@aws-sdk/client-ses": "^3.624.0"
+  }
+}
